@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "689733778821",
+    "project_id": "amc-visimgnt",
+    "storage_bucket": "amc-visimgnt.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:689733778821:android:987726e29e0207b8a998ec",
+        "android_client_info": {
+          "package_name": "com.amc.amcvisitor"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_tXyIDm1PVwfX3RqghUvf8d4_b4swxlM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
