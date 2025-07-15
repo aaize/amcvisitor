@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -38,10 +39,12 @@ class _FacultyHomeState extends State<FacultyHome> {
     'Other commitments'
   ];
 
+
   @override
   void initState() {
     super.initState();
     _showWelcomeToast();
+
   }
 
   void _showWelcomeToast() {
@@ -57,7 +60,7 @@ class _FacultyHomeState extends State<FacultyHome> {
 
   Future<DocumentSnapshot?> _getFacultyProfile() async {
     try {
-      final allDepartments = ['MCA', 'MBA', 'BCA', 'MTECH']; // list all department codes
+      final allDepartments = ['MCA', 'MBA', 'BCA', 'MTECH'];
       final deptCode = allDepartments.firstWhere(
             (dept) => widget.userId.startsWith(dept),
         orElse: () => '',
@@ -82,84 +85,645 @@ class _FacultyHomeState extends State<FacultyHome> {
     }
   }
 
-
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 75);
-    if (pickedFile != null) {
-      setState(() => _selectedImage = File(pickedFile.path));
-    }
-  }
-
-  Future<void> _submitEvent() async {
-    if (_eventNameController.text.isEmpty ||
-        _descriptionController.text.isEmpty ||
-        _selectedImage == null) {
-      _showDialog('Please fill all fields and select an image.');
-      return;
-    }
-
-    setState(() => _isSubmitting = true);
-
-    try {
-      final fileBytes = await _selectedImage!.readAsBytes();
-      final fileName = 'event_${DateTime.now().millisecondsSinceEpoch}.jpg';
-
-      await supabase.storage.from('events').uploadBinary(
-          fileName,
-          fileBytes,
-          fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: true)
-      );
-
-      final imageUrl = supabase.storage.from('events').getPublicUrl(fileName);
-
-      final formattedEventDate = DateFormat('MMMM d, y h:mm:ss a').format(DateTime.now());
-
-
-      await FirebaseFirestore.instance
-          .collection('admin')
-          .doc('event_permission')
-          .collection('events')
-          .add({
-        'event_name': _eventNameController.text.trim(),
-        'description': _descriptionController.text.trim(),
-        'image_url': imageUrl,
-        'timestamp': FieldValue.serverTimestamp(),
-        'event_date': formattedEventDate, // ✅ NEW FIELD
-      });
-
-      Navigator.pop(context);
-      _clearFields();
-      _showDialog('Event submitted successfully!');
-    } catch (e) {
-      _showDialog('Error submitting event: $e');
-    } finally {
-      setState(() => _isSubmitting = false);
-    }
-  }
-
-  void _clearFields() {
-    _eventNameController.clear();
-    _descriptionController.clear();
-    setState(() => _selectedImage = null);
-  }
-
-  void _showDialog(String message) {
-    showCupertinoDialog(
+  void _showProfileDialog(Map<String, dynamic> data) {
+    showDialog(
       context: context,
-      builder: (_) => CupertinoAlertDialog(
-        title: Text('Event Status'),
-        content: Text(message),
-        actions: [
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            child: Text('OK'),
-            onPressed: () => Navigator.pop(context),
+      builder: (context) =>
+          Dialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20)),
+            child: Container(
+              padding: EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Profile Picture
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: backgroundColor, width: 3),
+                    ),
+                    child: CircleAvatar(
+                      radius: 48,
+                      backgroundColor: backgroundColor.withOpacity(0.1),
+                      backgroundImage: data['profile_image_url']?.isNotEmpty ==
+                          true
+                          ? NetworkImage(data['profile_image_url'])
+                          : null,
+                      child: data['profile_image_url']?.isNotEmpty != true
+                          ? Icon(Icons.person, size: 50, color: backgroundColor)
+                          : null,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+
+                  // Name
+                  Text(
+                    data['name'] ?? 'Unknown Faculty',
+                    style: GoogleFonts.poppins(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 8),
+
+                  // Designation
+                  Text(
+                    data['designation'] ?? 'No Designation',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 16),
+
+                  // Details
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildDetailRow(Icons.business, 'Department',
+                            data['department'] ?? 'Unknown'),
+                        SizedBox(height: 8),
+                        _buildDetailRow(Icons.location_on, 'Block',
+                            data['block'] ?? 'Unknown'),
+                        SizedBox(height: 8),
+                        _buildDetailRow(Icons.badge, 'User ID', widget.userId),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 20),
+
+                  // Close Button
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: backgroundColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 32, vertical: 12),
+                    ),
+                    child: Text(
+                      'Close',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
+  Widget _buildFacultyHeader(Map<String, dynamic> data) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 40, 16, 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // College Icon
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              image: DecorationImage(
+                image: AssetImage('assets/amclogo.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          // Profile Image
+          GestureDetector(
+            onTap: () => _showProfileDialog(data),
+            child: CircleAvatar(
+              radius: 20,
+              backgroundImage: data['profile_image_url']?.isNotEmpty == true
+                  ? NetworkImage(data['profile_image_url'])
+                  : null,
+              child: data['profile_image_url']?.isNotEmpty != true
+                  ? Icon(Icons.person, size: 20, color: Colors.grey[600])
+                  : null,
+            ),
           ),
         ],
       ),
     );
   }
+
+
+  Widget _buildDetailRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.grey[600]),
+        SizedBox(width: 12),
+        Text(
+          '$label: ',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[700],
+            fontSize: 14,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: GoogleFonts.poppins(
+              color: Colors.grey[600],
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlayStoreHeader() {
+    return Container(
+      padding: EdgeInsets.fromLTRB(16, 40, 16, 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // AMC Logo
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              image: DecorationImage(
+                image: AssetImage('assets/amclogo.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+
+          // Profile Picture with notification badge
+          FutureBuilder<DocumentSnapshot?>(
+            future: _getFacultyProfile(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data == null) {
+                return CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.grey[300],
+                  child: Icon(Icons.person, size: 20, color: Colors.grey[600]),
+                );
+              }
+
+              final data = snapshot.data!.data() as Map<String, dynamic>;
+              return Stack(
+                children: [
+                  GestureDetector(
+                    //onTap: () => _showProfileDialog(data),
+
+                  ),
+                  // Notification badge
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '1',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+
+
+
+
+  void _handleVisitorAction(DocumentSnapshot doc, bool accept) async {
+    if (accept) {
+      await _moveVisitorToMet(doc);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Visitor approved'), backgroundColor: Colors.green),
+      );
+    } else {
+      _askForDenialReason(doc); // <-- show reason picker
+    }
+  }
+
+
+
+  Future<List<QueryDocumentSnapshot>> _fetchPremiumEvents() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('events-ready')
+        .orderBy('timestamp', descending: true)
+        .limit(6)
+        .get();
+    return snapshot.docs;
+  }
+  void _showVisitorPassPopup(BuildContext context, String url) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Visitor Pass'),
+        content: Image.network(
+          url,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) =>
+              Text('Could not load pass image'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+  Widget _buildPremiumSliderSection() {
+    return FutureBuilder<List<QueryDocumentSnapshot>>(
+      future: _fetchPremiumEvents(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return SizedBox(); // or show fallback banner
+        }
+
+        return _PremiumEventSlider(events: snapshot.data!);
+      },
+    );
+  }
+
+  Widget _buildPremiumSlider() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('events-ready')
+          .orderBy('timestamp', descending: true)
+          .limit(5)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return Center(child: Text("No featured events"));
+        }
+
+        final docs = snapshot.data!.docs;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 1, vertical: 12),
+          child: SizedBox(
+            height: 290, // Play Store-like card height
+            child: PageView.builder(
+              itemCount: docs.length,
+              controller: PageController(viewportFraction: 0.9),
+              itemBuilder: (context, index) {
+                final data = docs[index].data() as Map<String, dynamic>;
+                final imageUrl = data['image_url'] ?? '';
+                final eventName = data['event_name'] ?? 'Untitled Event';
+                final description = data['description'] ?? '';
+
+                return Container(
+                  margin: EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    image: imageUrl.isNotEmpty
+                        ? DecorationImage(
+                      image: NetworkImage(imageUrl),
+                      fit: BoxFit.cover,
+                      colorFilter: ColorFilter.mode(
+                        Colors.black.withOpacity(0.4),
+                        BlendMode.darken,
+                      ),
+                    )
+                        : null,
+                    color: Colors.orange[400],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 6,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "From the admin",
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      Text(
+                        eventName,
+                        style: GoogleFonts.poppins(
+                          fontSize: 22,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: Colors.white70,
+                        ),
+                      ),
+                      Spacer(),
+                      Text(
+                        'See more',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: Colors.white,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _askForDenialReason(DocumentSnapshot doc) {
+    String? selectedReason = denialReasons.first;
+
+    showCupertinoModalPopup(
+      context: context,
+      builder: (_) => Container(
+        height: 300,
+        color: Color(0xFF0A1A2F),
+        child: Column(
+          children: [
+            SizedBox(height: 10),
+            Text(
+              "Select Denial Reason",
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                decoration: TextDecoration.none
+              ),
+
+            ),
+            Expanded(
+              child: CupertinoPicker(
+                backgroundColor: Color(0xFF0A1A2F),
+                itemExtent: 40,
+                scrollController: FixedExtentScrollController(initialItem: 0),
+                onSelectedItemChanged: (int index) {
+                  selectedReason = denialReasons[index];
+                },
+                children: denialReasons.map((reason) {
+                  return Center(
+                    child: Text(
+                      reason,
+
+                      style: GoogleFonts.poppins(fontSize: 14,color: Colors.white),
+                      selectionColor: Colors.white,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            CupertinoButton(
+              color: Color(0xFF0A1A2F),
+              child: Text("Confirm"),
+              onPressed: () async {
+                Navigator.of(context).pop(); // Close the popup
+
+                await _moveVisitorToDenied(doc, selectedReason!);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Visitor denied'), backgroundColor: Colors.red),
+                );
+              },
+            ),
+            SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+  Widget _buildVisitorsList() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 100.0), // Add space for bottom nav
+      child: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collectionGroup('visitors')
+            .where('visited_to_username', isEqualTo: widget.userId)
+            .orderBy('registered_at', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return _buildEmptyCard('No Pending Visitors', Icons.people_outline);
+          }
+
+          final docs = snapshot.data!.docs;
+
+          // Split into pages of 3
+          final pages = <List<DocumentSnapshot>>[];
+          for (int i = 0; i < docs.length; i += 3) {
+            pages.add(docs.sublist(i, i + 3 > docs.length ? docs.length : i + 3));
+          }
+
+          return SizedBox(
+            height: 386, // Adjust height as needed
+            child: PageView.builder(
+              controller: PageController(viewportFraction: 0.9),
+              itemCount: pages.length,
+              itemBuilder: (context, index) {
+                final pageDocs = pages[index];
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: pageDocs.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0, right: 12),
+                      child: _buildVisitorCard(data, doc),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+
+
+  Widget _buildVisitorCard(Map<String, dynamic> visitorData, DocumentSnapshot doc) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 3),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Color(0xFF0A1A2F).withOpacity(0.6),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                // Visitor Image
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.grey[200],
+                  ),
+                  child: visitorData['profile_image_url']?.isNotEmpty == true
+                      ? ClipRRect(
+                    borderRadius: BorderRadius.circular(30),
+                    child: Image.network(
+                      visitorData['profile_image_url'],
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          Icon(Icons.person, color: Colors.grey[600]),
+                    ),
+                  )
+                      : Icon(Icons.person, color: Colors.grey[600]),
+                ),
+                SizedBox(width: 16),
+
+                // Visitor Details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        visitorData['name'] ?? 'Unknown Visitor',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.phone, size: 14, color: Colors.green),
+                          SizedBox(width: 4),
+                          Text(
+                            visitorData['phone'] ?? 'Unknown',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: Colors.grey[300],
+                            ),
+                          ),
+                          Text(' • ', style: TextStyle(color: Colors.amberAccent[300])),
+                          Text(
+                            'Pending',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: Colors.amber[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.cases_sharp, size: 14, color: Colors.blue),
+                          SizedBox(width: 2),
+                          Text(
+                            visitorData['purpose'] ?? 'General',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: Colors.grey[300],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Action Buttons
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => _handleVisitorAction(doc, false),
+                      icon: Icon(Icons.close, color: Colors.redAccent, size: 20),
+                    ),
+                    IconButton(
+                      onPressed: () => _handleVisitorAction(doc, true),
+                      icon: Icon(Icons.check, color: Colors.greenAccent, size: 20),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _moveVisitorToMet(DocumentSnapshot visitorDoc) async {
     final visitorData = visitorDoc.data()! as Map<String, dynamic>;
     visitorData['met_at'] = DateTime.now().toIso8601String();
@@ -181,946 +745,134 @@ class _FacultyHomeState extends State<FacultyHome> {
     await visitorDoc.reference.delete();
   }
 
-  void _showDenialDialog(DocumentSnapshot visitorDoc) {
-    final visitorData = visitorDoc.data()! as Map<String, dynamic>;
-    final visitorName = visitorData['name'] ?? 'Unknown';
-
-    showCupertinoDialog(
-      context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: Text('Deny Visit'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(height: 10),
-            Text('Please select a reason for denying $visitorName:'),
-            SizedBox(height: 20),
-            Container(
-              height: 200,
-              child: CupertinoPicker(
-                itemExtent: 32,
-                onSelectedItemChanged: (index) {},
-                children: denialReasons.map((reason) => Text(reason)).toList(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          CupertinoDialogAction(
-            child: Text('Cancel'),
-            onPressed: () => Navigator.pop(context),
-          ),
-          CupertinoDialogAction(
-            child: Text('Deny'),
-            isDestructiveAction: true,
-            onPressed: () async {
-              Navigator.pop(context);
-              await _moveVisitorToDenied(visitorDoc, denialReasons[0]);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Visit denied'), backgroundColor: Colors.red),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVisitorCard(DocumentSnapshot visitorDoc) {
-    final visitor = visitorDoc.data()! as Map<String, dynamic>;
-    DateTime? registeredAt = _parseDateTime(visitor['registered_at']);
-
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.white, Colors.grey.shade50],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: Offset(0, 8),
-            spreadRadius: 0,
-          ),
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 6,
-            offset: Offset(0, 2),
-            spreadRadius: 0,
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          // Main card content
-          Column(
-            children: [
-              // Header section with profile
-              Container(
-                padding: EdgeInsets.all(24),
-                child: Row(
-                  children: [
-                    // Enhanced profile image container
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        gradient: LinearGradient(
-                          colors: [
-                            backgroundColor.withOpacity(0.15),
-                            backgroundColor.withOpacity(0.05),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        border: Border.all(
-                          color: backgroundColor.withOpacity(0.1),
-                          width: 2,
-                        ),
-                      ),
-                      child: visitor['profile_image_url']?.isNotEmpty ?? false
-                          ? ClipRRect(
-                        borderRadius: BorderRadius.circular(18),
-                        child: Image.network(
-                          visitor['profile_image_url'],
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Icon(
-                            Icons.person_rounded,
-                            color: backgroundColor,
-                            size: 40,
-                          ),
-                        ),
-                      )
-                          : Icon(
-                        Icons.person_rounded,
-                        color: backgroundColor,
-                        size: 40,
-                      ),
-                    ),
-                    SizedBox(width: 20),
-                    // Visitor info
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            visitor['name'] ?? 'Unknown Visitor',
-                            style: GoogleFonts.poppins(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black87,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          // Purpose badge with gradient
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  backgroundColor.withOpacity(0.15),
-                                  backgroundColor.withOpacity(0.1),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: backgroundColor.withOpacity(0.2),
-                                width: 1,
-                              ),
-                            ),
-                            child: Text(
-                              visitor['purpose'] ?? 'General Visit',
-                              style: GoogleFonts.poppins(
-                                fontSize: 13,
-                                color: backgroundColor.withOpacity(0.9),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: 12),
-                          // Phone number with icon
-                          Row(
-                            children: [
-                              Container(
-                                padding: EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Icon(
-                                  Icons.phone_rounded,
-                                  size: 16,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  visitor['phone'] ?? 'No phone',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 13,
-                                    color: Colors.grey[600],
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          // Registration time
-                          if (registeredAt != null) ...[
-                            SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Container(
-                                  padding: EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Icon(
-                                    Icons.access_time_rounded,
-                                    size: 16,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                                SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    '${registeredAt.day}/${registeredAt.month}/${registeredAt.year} ${registeredAt.hour}:${registeredAt.minute.toString().padLeft(2, '0')}',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 13,
-                                      color: Colors.grey[600],
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Divider
-              Container(
-                margin: EdgeInsets.symmetric(horizontal: 24),
-                height: 1,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.transparent,
-                      Colors.grey.shade200,
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-
-              // Action buttons section
-              Container(
-                padding: EdgeInsets.all(24),
-                child: Row(
-                  children: [
-                    // Deny button
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.red.shade400,
-                              Colors.red.shade500,
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.red.withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: CupertinoButton(
-                          onPressed: () => _showDenialDialog(visitorDoc),
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(16),
-                          padding: EdgeInsets.symmetric(vertical: 14),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                CupertinoIcons.xmark_circle_fill,
-                                size: 20,
-                                color: Colors.white,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Deny',
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 16),
-                    // Accept button
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.green.shade400,
-                              Colors.green.shade500,
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.green.withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: CupertinoButton(
-                          onPressed: () async {
-                            await _moveVisitorToMet(visitorDoc);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('${visitor['name'] ?? 'Visitor'} approved for visit'),
-                                backgroundColor: Colors.green,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            );
-                          },
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(16),
-                          padding: EdgeInsets.symmetric(vertical: 14),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                CupertinoIcons.checkmark_circle_fill,
-                                size: 20,
-                                color: Colors.white,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Accept',
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          // Enhanced "View Pass" button
-          Positioned(
-            top: 16,
-            right: 16,
-            child: GestureDetector(
-              onTap: () {
-                final passUrl = visitor['visitor_pass_url'];
-                if (passUrl != null && passUrl.toString().isNotEmpty) {
-                  _showVisitorPassPopup(passUrl.toString());
-                } else {
-                  Fluttertoast.showToast(
-                    msg: 'No visitor pass uploaded.',
-                    backgroundColor: Colors.grey.shade600,
-                    textColor: Colors.white,
-                  );
-                }
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      backgroundColor.withOpacity(0.9),
-                      backgroundColor.withOpacity(0.8),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: backgroundColor.withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: Offset(0, 6),
-                    ),
-                    BoxShadow(
-                      color: backgroundColor.withOpacity(0.1),
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                padding: EdgeInsets.all(12),
-                child: Icon(
-                  CupertinoIcons.eye_solid,
-                  size: 20,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-
-          // Status indicator (optional - you can add this if you want to show online/offline status)
-          Positioned(
-            top: 16,
-            left: 16,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.green.shade100,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.green.shade300,
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade500,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  SizedBox(width: 4),
-                  Text(
-                    'Pending',
-                    style: GoogleFonts.poppins(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.green.shade700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-  void _showVisitorPassPopup(String imageUrl) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: EdgeInsets.all(16),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              color: Colors.white,
-              padding: EdgeInsets.all(12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Visitor Pass',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  SizedBox(height: 12),
-                  FutureBuilder<Image>(
-                    future: _loadNetworkImage(imageUrl),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Padding(
-                          padding: const EdgeInsets.all(20.0),
-                          child: Column(
-                            children: [
-                              CupertinoActivityIndicator(radius: 14),
-                              SizedBox(height: 10),
-                              Text("Loading...", style: GoogleFonts.poppins(fontSize: 12)),
-                            ],
-                          ),
-                        );
-                      } else if (snapshot.hasError) {
-                        return Padding(
-                          padding: const EdgeInsets.all(20.0),
-                          child: Column(
-                            children: [
-                              Icon(Icons.error_outline, color: Colors.red, size: 40),
-                              SizedBox(height: 10),
-                              Text("Failed to load image", style: GoogleFonts.poppins(fontSize: 14)),
-                            ],
-                          ),
-                        );
-                      } else {
-                        return ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: InteractiveViewer(
-                            child: snapshot.data!,
-                          ),
-                        );
-                      }
-                    },
-                  ),
-                  SizedBox(height: 16),
-                  CupertinoButton(
-                    child: Text("Close"),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-  Future<Image> _loadNetworkImage(String url) async {
-    final completer = Completer<Image>();
-    final image = Image.network(url);
-    final imageStream = image.image.resolve(ImageConfiguration());
-
-    imageStream.addListener(
-      ImageStreamListener((ImageInfo info, bool _) {
-        completer.complete(image);
-      }, onError: (error, stackTrace) {
-        completer.completeError(error ?? 'Unknown error');
-      }),
-    );
-
-    return completer.future;
-  }
-
-
-
-
-  Widget _buildEventSlider() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('events-ready')
-          .orderBy('timestamp', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return _buildLoadingWidget();
-        }
-
-        if (snapshot.hasError) return _buildErrorWidget();
-
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return _buildEmptyWidget('No Events Available', 'Check back later for upcoming events', Icons.event_busy);
-        }
-
-        final validEvents = _filterRecentEvents(snapshot.data!.docs);
-        if (validEvents.isEmpty) {
-          return _buildEmptyWidget('No Recent Events', 'No events in the last 10 hours', Icons.event_busy);
-        }
-
-        return _PremiumEventSlider(events: validEvents);
-      },
-    );
-  }
-
-  Widget _buildLoadingWidget() {
-    return Container(
-      height: 300,
-      child: Center(
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          valueColor: AlwaysStoppedAnimation<Color>(backgroundColor),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildErrorWidget() {
+  Widget _buildEmptyCard(String message, IconData icon) {
     return Container(
       padding: EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.red.shade50,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.red.shade300),
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.error_outline, color: Colors.red.shade600, size: 48),
+          Icon(icon, size: 48, color: Colors.grey[400]),
           SizedBox(height: 16),
-          Text('Error Loading Events',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red.shade800)),
-          SizedBox(height: 8),
-          Text('Please try again later',
-              style: TextStyle(fontSize: 14, color: Colors.red.shade600)),
+          Text(
+            message,
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildEmptyWidget(String title, String subtitle, IconData icon) {
-    return Container(
-      padding: EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.grey.shade600, size: 48),
-          SizedBox(height: 16),
-          Text(title,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.grey.shade800)),
-          SizedBox(height: 8),
-          Text(subtitle,
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
-        ],
-      ),
-    );
-  }
-  Future<void> _selectProfilePicture() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
 
-    if (pickedFile == null) return;
-
-    try {
-      final file = File(pickedFile.path);
-      final bytes = await file.readAsBytes();
-      final extension = pickedFile.path.split('.').last;
-
-      final allDepartments = ['MCA', 'MBA', 'BCA', 'MTECH']; // ✅ Add all departments
-      final deptCode = allDepartments.firstWhere(
-            (dept) => widget.userId.startsWith(dept),
-        orElse: () => '',
-      );
-
-      if (deptCode.isEmpty) {
-        _showDialog('Department could not be identified from userId.');
-        return;
-      }
-
-      final fileName = '${widget.userId}_avatar.$extension';
-
-      // Upload to Supabase
-      final storageResponse = await supabase.storage
-          .from('faculty-images')
-          .uploadBinary(fileName, bytes, fileOptions: FileOptions(upsert: true));
-
-      final publicUrl = supabase.storage.from('faculty-images').getPublicUrl(fileName);
-
-      // Save to Firestore
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc('faculty')
-          .collection(deptCode)
-          .doc(widget.userId)
-          .update({
-        'profile_image_url': publicUrl,
-      });
-
-      _showDialog('Profile picture updated successfully!');
-    } catch (e) {
-      print('Upload error: $e');
-      _showDialog('Failed to upload profile picture.');
-    }
-  }
-
-
-  Widget _buildVisitorsList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collectionGroup('visitors')
-          .where('visited_to_username', isEqualTo: widget.userId)
-          .orderBy('registered_at', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        }
-
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return _buildEmptyWidget('No pending visitors', 'All caught up!', Icons.people_outline);
-        }
-
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          itemCount: snapshot.data!.docs.length,
-          itemBuilder: (context, index) => _buildVisitorCard(snapshot.data!.docs[index]),
-        );
-      },
-    );
-  }
-
-  List<QueryDocumentSnapshot> _filterRecentEvents(List<QueryDocumentSnapshot> docs) {
-    final currentTime = DateTime.now();
-    return docs.where((doc) {
-      try {
-        final data = doc.data() as Map<String, dynamic>;
-        final timestamp = data['timestamp'] as Timestamp?;
-        if (timestamp == null) return false;
-
-        final eventTime = timestamp.toDate();
-        final difference = currentTime.difference(eventTime);
-        return difference.inHours < 10;
-      } catch (e) {
-        return false;
-      }
-    }).toList();
-  }
-
-  DateTime? _parseDateTime(dynamic raw) {
-    try {
-      if (raw is Timestamp) return raw.toDate();
-      if (raw is String) return DateTime.tryParse(raw);
-    } catch (_) {}
-    return null;
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      /*appBar: AppBar(
-        title: Center(
-          child: RichText(
-            text: TextSpan(
-              style: GoogleFonts.gabarito(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-              children: [TextSpan(text: "Faculty Home")],
-            ),
-          ),
-        ),
-        backgroundColor: backgroundColor,
-        elevation: 0,
-        actions: [
-          Padding(
-            padding: EdgeInsets.only(right: 16.0),
-          ),
-        ],
-      ),*/
+      backgroundColor: Color(0xFF0A1A2F),
+      body: FutureBuilder<DocumentSnapshot?>(
+        future: _getFacultyProfile(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
 
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          if (!snapshot.hasData || snapshot.data == null) {
+            return Center(child: Text("Profile not found"));
+          }
 
-            // AMC Logo Centered
-            Center(
-              child: Image.asset(
-                'assets/amclogo.png',
-                width: 280,
-                height: 100,
-                fit: BoxFit.contain,
-              ),
-            ),
+          final data = snapshot.data!.data() as Map<String, dynamic>;
 
-            SizedBox(height: 12),
+          return Column(
+            children: [
+              // 🔹 Custom AppBar with AMC Logo and Profile Image
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // AMC Logo (Left)
+                    Image.asset(
+                      'assets/amcbgno.png',
+                      width: 40,
+                      height: 50,
+                    ),
 
-            // Faculty Profile Card
-            FutureBuilder<DocumentSnapshot?>(
-              future: _getFacultyProfile(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CupertinoActivityIndicator());
-                }
-
-                if (!snapshot.hasData || snapshot.data == null || !snapshot.data!.exists) {
-                  return Center(
-                    child: Text(
-                      'Profile not found',
-                      style: GoogleFonts.poppins(
-                        color: Colors.redAccent,
-                        fontWeight: FontWeight.w500,
+                    // Profile Image (Right)
+                    GestureDetector(
+                      onTap: () => _showProfileDialog(data),
+                      child: CircleAvatar(
+                        radius: 22,
+                        backgroundColor: Colors.grey[300],
+                        backgroundImage: data['profile_image_url']?.isNotEmpty == true
+                            ? NetworkImage(data['profile_image_url'])
+                            : null,
+                        child: data['profile_image_url']?.isNotEmpty != true
+                            ? Icon(Icons.person, size: 22, color: Colors.grey[600])
+                            : null,
                       ),
                     ),
-                  );
-                }
+                  ],
+                ),
+              ),
 
-                final data = snapshot.data!.data() as Map<String, dynamic>;
-                final name = data['name'] ?? 'Unnamed Faculty';
-                final designation = data['designation'] ?? 'No Designation';
-                final department = data['department'] ?? 'Unknown Department';
-                final profileUrl = data['profile_image_url']?.toString() ?? '';
-                final block = data['block'] ?? 'Unknown block';
+              // 🔹 Faculty Header
 
-                return Container(
-                  margin: EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.white.withOpacity(0.9), Colors.grey[100]!],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 18,
-                        offset: Offset(0, 6),
+              // 🔹 Main Scrollable Content
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Featured Title
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+                        child: Text(
+                          "Featured",
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
+
+                      // Premium Slider
+                      _buildPremiumSliderSection(),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+                        child: Text(
+                          "Waiting For You...",
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+
+                      // Visitors Section
+                      _buildVisitorsList(),
+                      SizedBox(height: 80), // space for bottom nav
                     ],
                   ),
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        GestureDetector(
-                          onTap: _selectProfilePicture,
-                          child: MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: backgroundColor.withOpacity(0.4),
-                                  width: 2,
-                                ),
-                              ),
-                              child: CircleAvatar(
-                                radius: 40,
-                                backgroundColor: backgroundColor.withOpacity(0.2),
-                                backgroundImage: profileUrl.isNotEmpty ? NetworkImage(profileUrl) : null,
-                                child: profileUrl.isEmpty
-                                    ? Icon(Icons.person, size: 40, color: Colors.white)
-                                    : null,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 20),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                name,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                              SizedBox(height: 6),
-                              Text(
-                                designation,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  color: Colors.grey[800],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                department,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 13,
-                                  color: Colors.grey[600],
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                block,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 13,
-                                  color: Colors.grey[600],
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-
-            SizedBox(height: 12),
-
-            Text(
-              'Manage your events and visitor requests efficiently.',
-              style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[600]),
-            ),
-
-            SizedBox(height: 30),
-
-            Text(
-              'Current Events',
-              style: GoogleFonts.poppins(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: backgroundColor,
+                ),
               ),
-            ),
-
-            SizedBox(height: 16),
-            _buildEventSlider(),
-
-            SizedBox(height: 30),
-
-            Text(
-              'Pending Visitor Requests',
-              style: GoogleFonts.poppins(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: backgroundColor,
-              ),
-            ),
-
-            SizedBox(height: 16),
-            _buildVisitorsList(),
-          ],
-        ),
-      )
-
+            ],
+          );
+        },
+      ),
     );
   }
-}
 
+
+}
 class _PremiumEventSlider extends StatefulWidget {
   final List<QueryDocumentSnapshot> events;
 
@@ -1210,136 +962,131 @@ class _PremiumEventSliderState extends State<_PremiumEventSlider> {
                 child: Container(
                   margin: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                   decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                  BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 20,
-                  offset: Offset(0, 8),
-                  ),],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: Stack(
-                    children: [
-                      // Background Image
-                      if (imageUrl != null && imageUrl.isNotEmpty)
-                        Image.network(
-                          imageUrl,
-                          height: 320,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
+                    borderRadius: BorderRadius.circular(24),
+
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Stack(
+                      children: [
+                        // Background Image
+                        if (imageUrl != null && imageUrl.isNotEmpty)
+                          Image.network(
+                            imageUrl,
+                            height: 320,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Container(
+                              height: 320,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Color(0xFF6A5ACD).withOpacity(0.3),
+                                    Color(0xFF9370DB).withOpacity(0.3),
+                                  ],
+                                ),
+                              ),
+                              child: Center(
+                                child: Icon(Icons.image_not_supported, color: Colors.white, size: 64),
+                              ),
+                            ),
+                          )
+                        else
+                          Container(
                             height: 320,
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
-                                  Color(0xFF6A5ACD).withOpacity(0.3),
-                                  Color(0xFF9370DB).withOpacity(0.3),
+                                  Color(0xFF6A5ACD),
+                                  Color(0xFF9370DB),
                                 ],
                               ),
                             ),
-                            child: Center(
-                              child: Icon(Icons.image_not_supported, color: Colors.white, size: 64),
-                            ),
                           ),
-                        )
-                      else
+
+                        // Gradient Overlay
                         Container(
                           height: 320,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Color(0xFF6A5ACD),
-                                Color(0xFF9370DB),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                      // Gradient Overlay
-                      Container(
-                        height: 320,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withOpacity(0.3),
-                              Colors.black.withOpacity(0.8),
-                            ],
-                            stops: [0.0, 0.6, 1.0],
-                          ),
-                        ),
-                      ),
-
-                      // Premium Badge
-                      Positioned(
-                        top: 16,
-                        right: 16,
-                        child: _buildEventStatusBadge(eventData['event_date']),
-                      ),
-
-                      // Event Information
-                      Positioned(
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        child: Container(
-                          padding: EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: [
                                 Colors.transparent,
+                                Colors.black.withOpacity(0.3),
                                 Colors.black.withOpacity(0.8),
+                              ],
+                              stops: [0.0, 0.6, 1.0],
+                            ),
+                          ),
+                        ),
+
+                        // Premium Badge
+                        Positioned(
+                          top: 16,
+                          right: 16,
+                          child: _buildEventStatusBadge(eventData['event_date']),
+                        ),
+
+                        // Event Information
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: Container(
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withOpacity(0.8),
+                                ],
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Date and Time
+                                Row(
+                                  children: [
+                                    Icon(Icons.calendar_month, size: 16, color: Colors.white70),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      _formatEventDateTime(eventData['event_date']),
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        color: Colors.white70,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 8),
+                                // Event Name
+                                Text(
+                                  eventData['event_name'],
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ],
                             ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Date and Time
-                              Row(
-                                children: [
-                                  Icon(Icons.calendar_month, size: 16, color: Colors.white70),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    _formatEventDateTime(eventData['event_date']),
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 12,
-                                      color: Colors.white70,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 8),
-                              // Event Name
-                              Text(
-                                eventData['event_name'],
-                                style: GoogleFonts.poppins(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
               );
             },
           ),

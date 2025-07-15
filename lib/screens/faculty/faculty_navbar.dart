@@ -44,7 +44,7 @@ class _FacultyNavbarState extends State<FacultyNavbar> {
         .orderBy('met_at', descending: true)
         .snapshots()
         .listen((snapshot) {
-      _checkForRecentChanges(snapshot.docs, 'met_at');
+
     });
 
     FirebaseFirestore.instance
@@ -52,27 +52,11 @@ class _FacultyNavbarState extends State<FacultyNavbar> {
         .orderBy('cancelled_at', descending: true)
         .snapshots()
         .listen((snapshot) {
-      _checkForRecentChanges(snapshot.docs, 'cancelled_at');
+
     });
   }
 
-  void _checkForRecentChanges(List<DocumentSnapshot> docs, String timeField) {
-    final now = DateTime.now();
 
-    for (var doc in docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      final timestampStr = data[timeField];
-      final timestamp = DateTime.tryParse(timestampStr ?? '');
-
-      if (timestamp != null && now.difference(timestamp).inMinutes < 2) {
-        setState(() {
-          _showRedDot = true;
-        });
-        _saveNotificationState(true);
-        break;
-      }
-    }
-  }
 
   void _onItemTapped(int index) {
     if (index == 3) {
