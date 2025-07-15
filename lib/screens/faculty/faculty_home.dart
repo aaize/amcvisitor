@@ -231,152 +231,506 @@ class _FacultyHomeState extends State<FacultyHome> {
     DateTime? registeredAt = _parseDateTime(visitor['registered_at']);
 
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      margin: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: Offset(0, 5))],
+        gradient: LinearGradient(
+          colors: [Colors.white, Colors.grey.shade50],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: Offset(0, 8),
+            spreadRadius: 0,
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+            spreadRadius: 0,
+          ),
+        ],
       ),
-      child: Column(
+      child: Stack(
         children: [
-          Padding(
-            padding: EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(15),
-                    color: backgroundColor.withOpacity(0.1),
-                  ),
-                  child: visitor['profile_image_url']?.isNotEmpty ?? false
-                      ? ClipRRect(
-                    borderRadius: BorderRadius.circular(15),
-                    child: Image.network(
-                      visitor['profile_image_url'],
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          Icon(Icons.person, color: backgroundColor, size: 35),
-                    ),
-                  )
-                      : Icon(Icons.person, color: backgroundColor, size: 35),
-                ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        visitor['name'] ?? 'Unknown Visitor',
-                        style: GoogleFonts.poppins(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+          // Main card content
+          Column(
+            children: [
+              // Header section with profile
+              Container(
+                padding: EdgeInsets.all(24),
+                child: Row(
+                  children: [
+                    // Enhanced profile image container
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        gradient: LinearGradient(
+                          colors: [
+                            backgroundColor.withOpacity(0.15),
+                            backgroundColor.withOpacity(0.05),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        border: Border.all(
+                          color: backgroundColor.withOpacity(0.1),
+                          width: 2,
                         ),
                       ),
-                      SizedBox(height: 4),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: backgroundColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          visitor['purpose'] ?? 'General Visit',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
+                      child: visitor['profile_image_url']?.isNotEmpty ?? false
+                          ? ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: Image.network(
+                          visitor['profile_image_url'],
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Icon(
+                            Icons.person_rounded,
                             color: backgroundColor,
-                            fontWeight: FontWeight.w500,
+                            size: 40,
                           ),
                         ),
+                      )
+                          : Icon(
+                        Icons.person_rounded,
+                        color: backgroundColor,
+                        size: 40,
                       ),
-                      SizedBox(height: 8),
-                      Row(
+                    ),
+                    SizedBox(width: 20),
+                    // Visitor info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.phone, size: 14, color: Colors.grey[600]),
-                          SizedBox(width: 4),
                           Text(
-                            visitor['phone'] ?? 'No phone',
+                            visitor['name'] ?? 'Unknown Visitor',
                             style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: Colors.grey[600],
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black87,
+                              letterSpacing: -0.5,
                             ),
                           ),
+                          SizedBox(height: 8),
+                          // Purpose badge with gradient
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  backgroundColor.withOpacity(0.15),
+                                  backgroundColor.withOpacity(0.1),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: backgroundColor.withOpacity(0.2),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              visitor['purpose'] ?? 'General Visit',
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: backgroundColor.withOpacity(0.9),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 12),
+                          // Phone number with icon
+                          Row(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Icon(
+                                  Icons.phone_rounded,
+                                  size: 16,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  visitor['phone'] ?? 'No phone',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    color: Colors.grey[600],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          // Registration time
+                          if (registeredAt != null) ...[
+                            SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Icon(
+                                    Icons.access_time_rounded,
+                                    size: 16,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '${registeredAt.day}/${registeredAt.month}/${registeredAt.year} ${registeredAt.hour}:${registeredAt.minute.toString().padLeft(2, '0')}',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 13,
+                                      color: Colors.grey[600],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Divider
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 24),
+                height: 1,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.transparent,
+                      Colors.grey.shade200,
+                      Colors.transparent,
                     ],
                   ),
                 ),
-              ],
+              ),
+
+              // Action buttons section
+              Container(
+                padding: EdgeInsets.all(24),
+                child: Row(
+                  children: [
+                    // Deny button
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.red.shade400,
+                              Colors.red.shade500,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.red.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: CupertinoButton(
+                          onPressed: () => _showDenialDialog(visitorDoc),
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(16),
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                CupertinoIcons.xmark_circle_fill,
+                                size: 20,
+                                color: Colors.white,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Deny',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 16),
+                    // Accept button
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.green.shade400,
+                              Colors.green.shade500,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.green.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: CupertinoButton(
+                          onPressed: () async {
+                            await _moveVisitorToMet(visitorDoc);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('${visitor['name'] ?? 'Visitor'} approved for visit'),
+                                backgroundColor: Colors.green,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            );
+                          },
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(16),
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                CupertinoIcons.checkmark_circle_fill,
+                                size: 20,
+                                color: Colors.white,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Accept',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          // Enhanced "View Pass" button
+          Positioned(
+            top: 16,
+            right: 16,
+            child: GestureDetector(
+              onTap: () {
+                final passUrl = visitor['visitor_pass_url'];
+                if (passUrl != null && passUrl.toString().isNotEmpty) {
+                  _showVisitorPassPopup(passUrl.toString());
+                } else {
+                  Fluttertoast.showToast(
+                    msg: 'No visitor pass uploaded.',
+                    backgroundColor: Colors.grey.shade600,
+                    textColor: Colors.white,
+                  );
+                }
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      backgroundColor.withOpacity(0.9),
+                      backgroundColor.withOpacity(0.8),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: backgroundColor.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                    ),
+                    BoxShadow(
+                      color: backgroundColor.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                padding: EdgeInsets.all(12),
+                child: Icon(
+                  CupertinoIcons.eye_solid,
+                  size: 20,
+                  color: Colors.white,
+                ),
+              ),
             ),
           ),
-          Container(
-            padding: EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: Row(
-              children: [
-                Expanded(
-                  child: CupertinoButton(
-                    onPressed: () => _showDenialDialog(visitorDoc),
-                    color: Colors.red.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(15),
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(CupertinoIcons.xmark_circle, size: 18, color: Colors.white),
-                        SizedBox(width: 6),
-                        Text(
-                          'Deny',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
+
+          // Status indicator (optional - you can add this if you want to show online/offline status)
+          Positioned(
+            top: 16,
+            left: 16,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.green.shade100,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.green.shade300,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade500,
+                      shape: BoxShape.circle,
                     ),
                   ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: CupertinoButton(
-                    onPressed: () async {
-                      await _moveVisitorToMet(visitorDoc);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('${visitor['name'] ?? 'Visitor'} approved for visit'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    },
-                    color: Colors.green.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(15),
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(CupertinoIcons.checkmark_circle, size: 18, color: Colors.white),
-                        SizedBox(width: 6),
-                        Text(
-                          'Accept',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
+                  SizedBox(width: 4),
+                  Text(
+                    'Pending',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.green.shade700,
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
       ),
     );
   }
+  void _showVisitorPassPopup(String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.all(16),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              color: Colors.white,
+              padding: EdgeInsets.all(12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Visitor Pass',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  FutureBuilder<Image>(
+                    future: _loadNetworkImage(imageUrl),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Column(
+                            children: [
+                              CupertinoActivityIndicator(radius: 14),
+                              SizedBox(height: 10),
+                              Text("Loading...", style: GoogleFonts.poppins(fontSize: 12)),
+                            ],
+                          ),
+                        );
+                      } else if (snapshot.hasError) {
+                        return Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Column(
+                            children: [
+                              Icon(Icons.error_outline, color: Colors.red, size: 40),
+                              SizedBox(height: 10),
+                              Text("Failed to load image", style: GoogleFonts.poppins(fontSize: 14)),
+                            ],
+                          ),
+                        );
+                      } else {
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: InteractiveViewer(
+                            child: snapshot.data!,
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                  SizedBox(height: 16),
+                  CupertinoButton(
+                    child: Text("Close"),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+  Future<Image> _loadNetworkImage(String url) async {
+    final completer = Completer<Image>();
+    final image = Image.network(url);
+    final imageStream = image.image.resolve(ImageConfiguration());
+
+    imageStream.addListener(
+      ImageStreamListener((ImageInfo info, bool _) {
+        completer.complete(image);
+      }, onError: (error, stackTrace) {
+        completer.completeError(error ?? 'Unknown error');
+      }),
+    );
+
+    return completer.future;
+  }
+
+
+
 
   Widget _buildEventSlider() {
     return StreamBuilder<QuerySnapshot>(
@@ -564,7 +918,7 @@ class _FacultyHomeState extends State<FacultyHome> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      /*appBar: AppBar(
         title: Center(
           child: RichText(
             text: TextSpan(
@@ -584,7 +938,7 @@ class _FacultyHomeState extends State<FacultyHome> {
             padding: EdgeInsets.only(right: 16.0),
           ),
         ],
-      ),
+      ),*/
 
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
@@ -592,6 +946,19 @@ class _FacultyHomeState extends State<FacultyHome> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
+            // AMC Logo Centered
+            Center(
+              child: Image.asset(
+                'assets/amclogo.png',
+                width: 280,
+                height: 100,
+                fit: BoxFit.contain,
+              ),
+            ),
+
+            SizedBox(height: 12),
+
+            // Faculty Profile Card
             FutureBuilder<DocumentSnapshot?>(
               future: _getFacultyProfile(),
               builder: (context, snapshot) {
@@ -612,122 +979,115 @@ class _FacultyHomeState extends State<FacultyHome> {
                 }
 
                 final data = snapshot.data!.data() as Map<String, dynamic>;
-
                 final name = data['name'] ?? 'Unnamed Faculty';
                 final designation = data['designation'] ?? 'No Designation';
                 final department = data['department'] ?? 'Unknown Department';
                 final profileUrl = data['profile_image_url']?.toString() ?? '';
+                final block = data['block'] ?? 'Unknown block';
 
                 return Container(
-                  margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Stack(
-                    children: [
-                      // Background Image (very faint)
-                      Positioned.fill(
-                        child: Opacity(
-                          opacity: 0.99 , // Adjust for faintness
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Image.asset(
-                              'assets/amclogo.png',
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // Foreground content
-                      Container(
-                        padding: EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 12,
-                              offset: Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            GestureDetector(
-                              onTap: _selectProfilePicture,
-                              child: MouseRegion(
-                                cursor: SystemMouseCursors.click,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: backgroundColor.withOpacity(0.4),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: CircleAvatar(
-                                    radius: 40,
-                                    backgroundColor: backgroundColor.withOpacity(0.2),
-                                    backgroundImage:
-                                    profileUrl.isNotEmpty ? NetworkImage(profileUrl) : null,
-                                    child: profileUrl.isEmpty
-                                        ? Icon(Icons.person, size: 40, color: Colors.white)
-                                        : null,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 20),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    name,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    designation,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 14,
-                                      color: Colors.grey[800],
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  SizedBox(height: 2),
-                                  Text(
-                                    department,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 13,
-                                      color: Colors.grey[600],
-                                      fontWeight: FontWeight.w400,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+                  margin: EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.white.withOpacity(0.9), Colors.grey[100]!],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 18,
+                        offset: Offset(0, 6),
                       ),
                     ],
                   ),
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: _selectProfilePicture,
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: backgroundColor.withOpacity(0.4),
+                                  width: 2,
+                                ),
+                              ),
+                              child: CircleAvatar(
+                                radius: 40,
+                                backgroundColor: backgroundColor.withOpacity(0.2),
+                                backgroundImage: profileUrl.isNotEmpty ? NetworkImage(profileUrl) : null,
+                                child: profileUrl.isEmpty
+                                    ? Icon(Icons.person, size: 40, color: Colors.white)
+                                    : null,
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 20),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              SizedBox(height: 6),
+                              Text(
+                                designation,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  color: Colors.grey[800],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                department,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                block,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 );
-
               },
             ),
 
+            SizedBox(height: 12),
 
-
-            SizedBox(height: 8),
             Text(
               'Manage your events and visitor requests efficiently.',
               style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[600]),
             ),
+
             SizedBox(height: 30),
+
             Text(
               'Current Events',
               style: GoogleFonts.poppins(
@@ -736,9 +1096,12 @@ class _FacultyHomeState extends State<FacultyHome> {
                 color: backgroundColor,
               ),
             ),
+
             SizedBox(height: 16),
             _buildEventSlider(),
+
             SizedBox(height: 30),
+
             Text(
               'Pending Visitor Requests',
               style: GoogleFonts.poppins(
@@ -747,11 +1110,13 @@ class _FacultyHomeState extends State<FacultyHome> {
                 color: backgroundColor,
               ),
             ),
+
             SizedBox(height: 16),
             _buildVisitorsList(),
           ],
         ),
-      ),
+      )
+
     );
   }
 }

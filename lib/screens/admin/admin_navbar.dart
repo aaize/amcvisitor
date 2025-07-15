@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:visimgnt/screens/admin/admin_event_screen.dart';
 import 'package:visimgnt/screens/faculty/faculty_home.dart';
 
 import '../../login.dart';
@@ -161,6 +162,7 @@ class _AdminNavbarState extends State<AdminNavbar> {
   Widget build(BuildContext context) {
     final List<Widget> _screens = [
       AdminHome(),
+      AdminEventScreen(),
 
     ];
 
@@ -188,11 +190,12 @@ class _AdminNavbarState extends State<AdminNavbar> {
           elevation: 8,
           onTap: _onItemTapped,
           items: [
+
+                _buildHomeIcon(),
             const BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.home),
-              label: 'Home',
+              icon: Icon(CupertinoIcons.add_circled),
+              label: 'Event',
             ),
-            _buildHomeIcon(),
             const BottomNavigationBarItem(
               icon: Icon(CupertinoIcons.person_3),
               label: 'Visitors',

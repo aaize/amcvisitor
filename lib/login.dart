@@ -27,6 +27,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   String _selectedRole = 'faculty';
   String? _selectedDepartment;
   String? _selectedDesignation;
+  String? _selectedBlock;
 
   bool _isLogin = true;
   bool _isLoading = false;
@@ -38,6 +39,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
   final List<String> departments = ['MCA', 'BBA', 'BCA', 'MTech'];
   final List<String> designations = ['Professor', 'Assistant Professor','Associate Professor'];
+  final List<String> blocks = ['AMC', 'AMCEC'];
 
   @override
   void initState() {
@@ -101,9 +103,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     }
   }
 
-
-
-
   Future<void> _saveCredentials(String username, String password) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('savedUsername', username);
@@ -161,6 +160,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
             'name': _nameController.text.trim(),
             'department': _selectedDepartment ?? '',
             'designation': _selectedDesignation ?? '',
+            'block': _selectedBlock ?? '',
           },
         });
 
@@ -183,8 +183,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       }
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -239,6 +237,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                   _selectedRole = val!;
                                   _selectedDepartment = null;
                                   _selectedDesignation = null;
+                                  _selectedBlock = null;
                                 }),
                                 items: const [
                                   DropdownMenuItem(value: 'faculty', child: Text('Faculty')),
@@ -281,6 +280,20 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                       onChanged: (val) => setState(() => _selectedDesignation = val),
                                       validator: (value) =>
                                       value == null ? 'Select designation' : null,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    DropdownButtonFormField<String>(
+                                      value: _selectedBlock,
+                                      decoration: _dropdownDecoration("Select Block"),
+                                      dropdownColor: const Color(0xFF1F2C44),
+                                      style: const TextStyle(color: Colors.white),
+                                      items: blocks
+                                          .map((block) =>
+                                          DropdownMenuItem(value: block, child: Text(block)))
+                                          .toList(),
+                                      onChanged: (val) => setState(() => _selectedBlock = val),
+                                      validator: (value) =>
+                                      value == null ? 'Select block' : null,
                                     ),
                                   ],
                                 )

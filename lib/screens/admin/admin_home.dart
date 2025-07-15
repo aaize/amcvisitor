@@ -154,16 +154,6 @@ class _AdminHomeState extends State<AdminHome> {
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(
-        middle: Text(
-          'Admin Dashboard',
-          style: GoogleFonts.poppins(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: backgroundColor,
-      ),
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
