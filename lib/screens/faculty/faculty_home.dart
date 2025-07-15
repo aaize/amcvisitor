@@ -954,6 +954,7 @@ class _PremiumEventSliderState extends State<_PremiumEventSlider> {
               final imageUrl = eventData['image_url'] as String?;
               final timestamp = eventData['timestamp'] as Timestamp?;
 
+              // Inside itemBuilder
               return GestureDetector(
                 onTap: () => Navigator.push(
                   context,
@@ -963,7 +964,6 @@ class _PremiumEventSliderState extends State<_PremiumEventSlider> {
                   margin: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(24),
-
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(24),
@@ -1076,10 +1076,51 @@ class _PremiumEventSliderState extends State<_PremiumEventSlider> {
                                     fontWeight: FontWeight.w700,
                                     color: Colors.white,
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),SizedBox(height: 8),
+                                // Event Name
+                                Text(
+                                  eventData['description'],
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 15,
+
+                                    color: Colors.white,
+                                  ),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ],
+                            ),
+                          ),
+                        ),
+
+                        // See More Button (Bottom Right)
+                        Positioned(
+                          bottom: 16,
+                          right: 16,
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => EventDetailsScreen(event: eventData)),
+                              );
+                            },
+                            child: Container(
+                              padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(color: Colors.white24),
+                              ),
+                              child: Text(
+                                'See more',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -1088,6 +1129,7 @@ class _PremiumEventSliderState extends State<_PremiumEventSlider> {
                   ),
                 ),
               );
+
             },
           ),
         ),
