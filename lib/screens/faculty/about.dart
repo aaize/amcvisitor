@@ -85,14 +85,14 @@ class _AnimatedCollegeInfoState extends State<AnimatedCollegeInfo>
             child: ScaleTransition(
               scale: _scaleAnimation,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        Colors.blueGrey[900]!.withOpacity(0.9),
+                        Color(0xFF0A1A2F),
                         Colors.blueGrey[800]!.withOpacity(0.8),
                       ],
                     ),

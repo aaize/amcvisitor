@@ -8,6 +8,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:visimgnt/screens/faculty/faculty_home.dart';
+import 'package:visimgnt/screens/faculty/faculty_navbar.dart';
 
 class AddEventScreen extends StatefulWidget {
   const AddEventScreen({super.key});
@@ -581,7 +583,7 @@ class _AddEventScreenState extends State<AddEventScreen>
                             ? const CupertinoActivityIndicator(
                             color: CupertinoColors.white)
                             : const Text(
-                          'Add Event',
+                          'Submit',
                           style: TextStyle(
                             color: CupertinoColors.white,
                             fontSize: 16,
@@ -593,23 +595,7 @@ class _AddEventScreenState extends State<AddEventScreen>
                     const SizedBox(height: 16),
 
                     // Cancel Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: CupertinoButton(
-                        borderRadius: BorderRadius.circular(12),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        color: CupertinoColors.white,
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text(
-                          'Cancel',
-                          style: TextStyle(
-                            color: CupertinoColors.systemGrey,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
+
                   ],
                 ),
               ),

@@ -10,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../login.dart';
 import 'about.dart';
@@ -84,6 +85,12 @@ class _FacultyHomeState extends State<FacultyHome> {
       return null;
     }
   }
+
+  Future<void> _refreshData() async {
+    await Future.delayed(Duration(seconds: 1));
+    setState(() {});
+  }
+
 
   void _showProfileDialog(Map<String, dynamic> data) {
     showDialog(
@@ -572,23 +579,56 @@ class _FacultyHomeState extends State<FacultyHome> {
         if (imageUrl.isNotEmpty) {
           showDialog(
             context: context,
-            builder: (_) =>
-                Dialog(
-                  backgroundColor: Colors.transparent,
-                  child: Container(
-                    height: 500,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      image: DecorationImage(
-                        image: NetworkImage(imageUrl),
-                        fit: BoxFit.contain,
-                      ),
+            builder: (_) {
+              bool isImageLoaded = false;
+
+              return StatefulBuilder(
+                builder: (context, setState) {
+                  return Dialog(
+                    backgroundColor: Colors.transparent,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Image
+                        Image.network(
+                          imageUrl,
+                          fit: BoxFit.contain,
+                          height: 700,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) {
+                              // Delay state update to avoid calling setState during build
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (!isImageLoaded) {
+                                  setState(() {
+                                    isImageLoaded = true;
+                                  });
+                                }
+                              });
+                              return child;
+                            } else {
+                              return const SizedBox.shrink(); // Hide image until loaded
+                            }
+                          },
+                          errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.error, size: 40, color: Colors.red),
+                        ),
+
+                        // Loader on top
+                        if (!isImageLoaded)
+                          const CupertinoActivityIndicator(
+                            radius: 16,
+                            color: Colors.white,
+                          ),
+                      ],
                     ),
-                  ),
-                ),
+                  );
+                },
+              );
+            },
           );
         }
       },
+
       child: Container(
         margin: EdgeInsets.only(bottom: 4),
         child: ClipRRect(
@@ -808,7 +848,7 @@ class _FacultyHomeState extends State<FacultyHome> {
               // 🔹 Custom AppBar with AMC Logo and Profile Image
               Padding(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0, vertical: 20),
+                    horizontal: 16.0, vertical: 6),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -818,9 +858,8 @@ class _FacultyHomeState extends State<FacultyHome> {
                         GestureDetector(
                           onTap: () => _showProfileDialog(data),
                           child: Container(
-                            width: 44,
-                            // roughly same as CircleAvatar with radius 22
-                            height: 44,
+                            width: 49,
+                            height: 50,
                             decoration: BoxDecoration(
                               color: Colors.grey[300],
                               borderRadius: BorderRadius.circular(8),
@@ -903,48 +942,50 @@ class _FacultyHomeState extends State<FacultyHome> {
                 ),
               ),
               Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Featured Title
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16.0, vertical: 12),
-                        child: Text(
-                          "Featured",
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
+                child: LiquidPullToRefresh(
+                  color: Color(0xDD0D233E),
+                  backgroundColor: Colors.white,
+                  height: 80.0,
+                  animSpeedFactor: 2,
+                  showChildOpacityTransition: false,
+                  onRefresh: _refreshData, // You’ll define this method
+                  child: SingleChildScrollView(
+                    physics: AlwaysScrollableScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 🔹 Sections
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+                          child: Text(
+                            "Featured",
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                      ),
-
-                      // Premium Slider
-                      _buildPremiumSliderSection(),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16.0, vertical: 12),
-                        child: Text(
-                          "Waiting For You...",
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
+                        _buildPremiumSliderSection(),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+                          child: Text(
+                            "Waiting For You...",
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                      ),
-
-                      // Visitors Section
-                      _buildVisitorsList(),
-                      AnimatedCollegeInfo(),
-
-                    ],
+                        _buildVisitorsList(),
+                        AnimatedCollegeInfo(),
+                      ],
+                    ),
                   ),
-
                 ),
               ),
+
             ],
           );
         },
@@ -952,6 +993,7 @@ class _FacultyHomeState extends State<FacultyHome> {
     );
   }
 }
+
 class _PremiumEventSlider extends StatefulWidget {
   final List<QueryDocumentSnapshot> events;
 
