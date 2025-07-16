@@ -12,6 +12,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../login.dart';
+import 'about.dart';
 import 'event_screen.dart';
 
 class FacultyHome extends StatefulWidget {
@@ -44,7 +45,6 @@ class _FacultyHomeState extends State<FacultyHome> {
   void initState() {
     super.initState();
     _showWelcomeToast();
-
   }
 
   void _showWelcomeToast() {
@@ -208,18 +208,48 @@ class _FacultyHomeState extends State<FacultyHome> {
               ),
             ),
           ),
-          // Profile Image
-          GestureDetector(
-            onTap: () => _showProfileDialog(data),
-            child: CircleAvatar(
-              radius: 20,
-              backgroundImage: data['profile_image_url']?.isNotEmpty == true
-                  ? NetworkImage(data['profile_image_url'])
-                  : null,
-              child: data['profile_image_url']?.isNotEmpty != true
-                  ? Icon(Icons.person, size: 20, color: Colors.grey[600])
-                  : null,
-            ),
+
+          // Faculty Info: Profile + Name & Designation
+          Row(
+            children: [
+              // Text Info
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    data['name'] ?? 'Unknown',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    data['designation'] ?? 'No Designation',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(width: 8),
+
+              // Profile Image with Gesture
+              GestureDetector(
+                onTap: () => _showProfileDialog(data),
+                child: CircleAvatar(
+                  radius: 20,
+                  backgroundImage: data['profile_image_url']?.isNotEmpty == true
+                      ? NetworkImage(data['profile_image_url'])
+                      : null,
+                  child: data['profile_image_url']?.isNotEmpty != true
+                      ? Icon(Icons.person, size: 20, color: Colors.grey[600])
+                      : null,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -253,94 +283,18 @@ class _FacultyHomeState extends State<FacultyHome> {
     );
   }
 
-  Widget _buildPlayStoreHeader() {
-    return Container(
-      padding: EdgeInsets.fromLTRB(16, 40, 16, 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // AMC Logo
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              image: DecorationImage(
-                image: AssetImage('assets/amclogo.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-
-          // Profile Picture with notification badge
-          FutureBuilder<DocumentSnapshot?>(
-            future: _getFacultyProfile(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData || snapshot.data == null) {
-                return CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.grey[300],
-                  child: Icon(Icons.person, size: 20, color: Colors.grey[600]),
-                );
-              }
-
-              final data = snapshot.data!.data() as Map<String, dynamic>;
-              return Stack(
-                children: [
-                  GestureDetector(
-                    //onTap: () => _showProfileDialog(data),
-
-                  ),
-                  // Notification badge
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 1),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '1',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 8,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-
-
-
-
-
 
   void _handleVisitorAction(DocumentSnapshot doc, bool accept) async {
     if (accept) {
       await _moveVisitorToMet(doc);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Visitor approved'), backgroundColor: Colors.green),
+        SnackBar(
+            content: Text('Visitor approved'), backgroundColor: Colors.green),
       );
     } else {
       _askForDenialReason(doc); // <-- show reason picker
     }
   }
-
 
 
   Future<List<QueryDocumentSnapshot>> _fetchPremiumEvents() async {
@@ -351,27 +305,28 @@ class _FacultyHomeState extends State<FacultyHome> {
         .get();
     return snapshot.docs;
   }
+
   void _showVisitorPassPopup(BuildContext context, String url) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Visitor Pass'),
-        content: Image.network(
-          url,
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) =>
-              Text('Could not load pass image'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text('Close'),
+      builder: (context) =>
+          AlertDialog(
+            title: Text('Visitor Pass'),
+            content: Image.network(
+              url,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) =>
+                  Text('Could not load pass image'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('Close'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
-
 
 
   Widget _buildPremiumSliderSection() {
@@ -497,64 +452,68 @@ class _FacultyHomeState extends State<FacultyHome> {
 
     showCupertinoModalPopup(
       context: context,
-      builder: (_) => Container(
-        height: 300,
-        color: Color(0xFF0A1A2F),
-        child: Column(
-          children: [
-            SizedBox(height: 10),
-            Text(
-              "Select Denial Reason",
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-                decoration: TextDecoration.none
-              ),
+      builder: (_) =>
+          Container(
+            height: 300,
+            color: Color(0xFF0A1A2F),
+            child: Column(
+              children: [
+                SizedBox(height: 10),
+                Text(
+                  "Select Denial Reason",
+                  style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      decoration: TextDecoration.none
+                  ),
 
-            ),
-            Expanded(
-              child: CupertinoPicker(
-                backgroundColor: Color(0xFF0A1A2F),
-                itemExtent: 40,
-                scrollController: FixedExtentScrollController(initialItem: 0),
-                onSelectedItemChanged: (int index) {
-                  selectedReason = denialReasons[index];
-                },
-                children: denialReasons.map((reason) {
-                  return Center(
-                    child: Text(
-                      reason,
+                ),
+                Expanded(
+                  child: CupertinoPicker(
+                    backgroundColor: Color(0xFF0A1A2F),
+                    itemExtent: 40,
+                    scrollController: FixedExtentScrollController(
+                        initialItem: 0),
+                    onSelectedItemChanged: (int index) {
+                      selectedReason = denialReasons[index];
+                    },
+                    children: denialReasons.map((reason) {
+                      return Center(
+                        child: Text(
+                          reason,
 
-                      style: GoogleFonts.poppins(fontSize: 14,color: Colors.white),
-                      selectionColor: Colors.white,
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-            CupertinoButton(
-              color: Color(0xFF0A1A2F),
-              child: Text("Confirm"),
-              onPressed: () async {
-                Navigator.of(context).pop(); // Close the popup
+                          style: GoogleFonts.poppins(
+                              fontSize: 14, color: Colors.white),
+                          selectionColor: Colors.white,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                CupertinoButton(
+                  color: Color(0xFF0A1A2F),
+                  child: Text("Confirm"),
+                  onPressed: () async {
+                    Navigator.of(context).pop(); // Close the popup
 
-                await _moveVisitorToDenied(doc, selectedReason!);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Visitor denied'), backgroundColor: Colors.red),
-                );
-              },
+                    await _moveVisitorToDenied(doc, selectedReason!);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Visitor denied'),
+                          backgroundColor: Colors.red),
+                    );
+                  },
+                ),
+                SizedBox(height: 16),
+              ],
             ),
-            SizedBox(height: 16),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
 
   Widget _buildVisitorsList() {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 100.0), // Add space for bottom nav
+      padding: const EdgeInsets.only(bottom: 1.0), // Add space for bottom nav
       child: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collectionGroup('visitors')
@@ -575,11 +534,12 @@ class _FacultyHomeState extends State<FacultyHome> {
           // Split into pages of 3
           final pages = <List<DocumentSnapshot>>[];
           for (int i = 0; i < docs.length; i += 3) {
-            pages.add(docs.sublist(i, i + 3 > docs.length ? docs.length : i + 3));
+            pages.add(
+                docs.sublist(i, i + 3 > docs.length ? docs.length : i + 3));
           }
 
           return SizedBox(
-            height: 386, // Adjust height as needed
+            height: 350, // Adjust height as needed
             child: PageView.builder(
               controller: PageController(viewportFraction: 0.9),
               itemCount: pages.length,
@@ -591,7 +551,7 @@ class _FacultyHomeState extends State<FacultyHome> {
                     final data = doc.data() as Map<String, dynamic>;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12.0, right: 12),
-                      child: _buildVisitorCard(data, doc),
+                      child: _buildVisitorCard(data, doc, context),
                     );
                   }).toList(),
                 );
@@ -604,119 +564,170 @@ class _FacultyHomeState extends State<FacultyHome> {
   }
 
 
-
-  Widget _buildVisitorCard(Map<String, dynamic> visitorData, DocumentSnapshot doc) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 3),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Color(0xFF0A1A2F).withOpacity(0.6),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.2)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                // Visitor Image
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.grey[200],
-                  ),
-                  child: visitorData['profile_image_url']?.isNotEmpty == true
-                      ? ClipRRect(
-                    borderRadius: BorderRadius.circular(30),
-                    child: Image.network(
-                      visitorData['profile_image_url'],
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          Icon(Icons.person, color: Colors.grey[600]),
+  Widget _buildVisitorCard(Map<String, dynamic> visitorData,
+      DocumentSnapshot doc, BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        final imageUrl = visitorData['visitor_pass_url'] ?? '';
+        if (imageUrl.isNotEmpty) {
+          showDialog(
+            context: context,
+            builder: (_) =>
+                Dialog(
+                  backgroundColor: Colors.transparent,
+                  child: Container(
+                    height: 500,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      image: DecorationImage(
+                        image: NetworkImage(imageUrl),
+                        fit: BoxFit.contain,
+                      ),
                     ),
-                  )
-                      : Icon(Icons.person, color: Colors.grey[600]),
+                  ),
                 ),
-                SizedBox(width: 16),
+          );
+        }
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: 4),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(13),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 13, vertical: 0),
+              // Tighter padding
+              decoration: BoxDecoration(
+                color: Color(0xFF0A1A2F).withOpacity(0.6),
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(color: Colors.white.withOpacity(0.12)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  // Visitor Image
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      color: Colors.grey[300],
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: visitorData['profile_image_url']?.isNotEmpty == true
+                        ? Transform.scale(
+                      scale: 1.4, // 👈 Zoom level (try 1.2–1.6 depending on how much zoom you want)
+                      child: Image.network(
+                        visitorData['profile_image_url'],
+                        fit: BoxFit.cover,
+                        alignment: Alignment.center,
+                        errorBuilder: (context, error, stackTrace) =>
+                            Icon(Icons.person, color: Colors.grey[600], size: 30),
+                      ),
+                    )
+                        : Icon(Icons.person, color: Colors.grey[600], size: 30),
+                  ),
 
-                // Visitor Details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        visitorData['name'] ?? 'Unknown Visitor',
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                  SizedBox(width: 10),
+
+                  // Visitor Details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                            children: [
+                              Text(
+                                visitorData['name'] ?? 'Unknown',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              SizedBox(width: 8),
+                              Text('•', style: TextStyle(
+                                  color: Colors.amberAccent[200],
+                                  fontSize: 10)),
+                              SizedBox(width: 2),
+                              Text(
+                                'Pending',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: Colors.amber[600],
+                                ),
+                              ),
+                            ]
                         ),
+                        Row(
+                          children: [
+                            Icon(Icons.phone, size: 10, color: Colors.green),
+                            SizedBox(width: 2),
+                            Flexible(
+                              child: Text(
+                                visitorData['phone'] ?? 'Unknown',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: Colors.grey[300],
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Icon(Icons.cases_sharp, size: 10,
+                                color: Colors.blue),
+                            SizedBox(width: 3),
+                            Flexible(
+                              child: Text(
+                                visitorData['purpose'] ?? 'General',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 10,
+                                  color: Colors.grey[300],
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Action Buttons (smaller layout)
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        iconSize: 18,
+                        constraints: BoxConstraints(),
+                        onPressed: () => _handleVisitorAction(doc, true),
+                        icon: Icon(Icons.check, color: Colors.greenAccent),
                       ),
-                      SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.phone, size: 14, color: Colors.green),
-                          SizedBox(width: 4),
-                          Text(
-                            visitorData['phone'] ?? 'Unknown',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: Colors.grey[300],
-                            ),
-                          ),
-                          Text(' • ', style: TextStyle(color: Colors.amberAccent[300])),
-                          Text(
-                            'Pending',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: Colors.amber[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.cases_sharp, size: 14, color: Colors.blue),
-                          SizedBox(width: 2),
-                          Text(
-                            visitorData['purpose'] ?? 'General',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: Colors.grey[300],
-                            ),
-                          ),
-                        ],
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        iconSize: 18,
+                        constraints: BoxConstraints(),
+                        onPressed: () => _handleVisitorAction(doc, false),
+                        icon: Icon(Icons.close, color: Colors.redAccent),
                       ),
                     ],
                   ),
-                ),
-
-                // Action Buttons
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => _handleVisitorAction(doc, false),
-                      icon: Icon(Icons.close, color: Colors.redAccent, size: 20),
-                    ),
-                    IconButton(
-                      onPressed: () => _handleVisitorAction(doc, true),
-                      icon: Icon(Icons.check, color: Colors.greenAccent, size: 20),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -724,24 +735,28 @@ class _FacultyHomeState extends State<FacultyHome> {
     );
   }
 
+
   Future<void> _moveVisitorToMet(DocumentSnapshot visitorDoc) async {
     final visitorData = visitorDoc.data()! as Map<String, dynamic>;
     visitorData['met_at'] = DateTime.now().toIso8601String();
     visitorData['status'] = 'met';
     visitorData['accepted_by'] = widget.userId;
 
-    await FirebaseFirestore.instance.collection('visitors-met').add(visitorData);
+    await FirebaseFirestore.instance.collection('visitors-met').add(
+        visitorData);
     await visitorDoc.reference.delete();
   }
 
-  Future<void> _moveVisitorToDenied(DocumentSnapshot visitorDoc, String reason) async {
+  Future<void> _moveVisitorToDenied(DocumentSnapshot visitorDoc,
+      String reason) async {
     final visitorData = visitorDoc.data()! as Map<String, dynamic>;
     visitorData['denied_at'] = DateTime.now().toIso8601String();
     visitorData['status'] = 'denied';
     visitorData['denied_by'] = widget.userId;
     visitorData['denial_reason'] = reason;
 
-    await FirebaseFirestore.instance.collection('visitors-denied').add(visitorData);
+    await FirebaseFirestore.instance.collection('visitors-denied').add(
+        visitorData);
     await visitorDoc.reference.delete();
   }
 
@@ -771,7 +786,6 @@ class _FacultyHomeState extends State<FacultyHome> {
   }
 
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -793,38 +807,101 @@ class _FacultyHomeState extends State<FacultyHome> {
             children: [
               // 🔹 Custom AppBar with AMC Logo and Profile Image
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0, vertical: 20),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // AMC Logo (Left)
-                    Image.asset(
-                      'assets/amcbgno.png',
-                      width: 40,
-                      height: 50,
+                    // 🔹 Name + Designation + Profile (Left)
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => _showProfileDialog(data),
+                          child: Container(
+                            width: 44,
+                            // roughly same as CircleAvatar with radius 22
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(8),
+                              // Rounded square corners
+                              image: data['profile_image_url']?.isNotEmpty ==
+                                  true
+                                  ? DecorationImage(
+                                image: NetworkImage(data['profile_image_url']),
+                                fit: BoxFit.cover,
+                              )
+                                  : null,
+                            ),
+                            child: data['profile_image_url']?.isNotEmpty != true
+                                ? Icon(
+                                Icons.person, size: 22, color: Colors.grey[600])
+                                : null,
+                          ),
+
+                        ),
+                        SizedBox(width: 8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              data['name'] ?? 'Unknown',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              data['designation'] ?? 'No Designation',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: Colors.grey[300],
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                            Row(
+                                children: [
+                                  Text(
+                                    data['department'] ?? 'No Dept',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: Colors.grey[300],
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
+                                  Text(
+                                    ' / ',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: Colors.grey[300],
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
+                                  Text(
+                                    data['block'] ?? 'No Dept',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: Colors.grey[300],
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
+                                ]),
+
+                          ],
+                        ),
+                      ],
                     ),
 
-                    // Profile Image (Right)
-                    GestureDetector(
-                      onTap: () => _showProfileDialog(data),
-                      child: CircleAvatar(
-                        radius: 22,
-                        backgroundColor: Colors.grey[300],
-                        backgroundImage: data['profile_image_url']?.isNotEmpty == true
-                            ? NetworkImage(data['profile_image_url'])
-                            : null,
-                        child: data['profile_image_url']?.isNotEmpty != true
-                            ? Icon(Icons.person, size: 22, color: Colors.grey[600])
-                            : null,
-                      ),
+                    // 🔹 AMC Logo (Right)
+                    Image.asset(
+                      'assets/amcbgno.png',
+                      width: 47,
+                      height: 57,
                     ),
                   ],
                 ),
               ),
-
-              // 🔹 Faculty Header
-
-              // 🔹 Main Scrollable Content
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
@@ -832,7 +909,8 @@ class _FacultyHomeState extends State<FacultyHome> {
                     children: [
                       // Featured Title
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 12),
                         child: Text(
                           "Featured",
                           style: GoogleFonts.poppins(
@@ -846,7 +924,8 @@ class _FacultyHomeState extends State<FacultyHome> {
                       // Premium Slider
                       _buildPremiumSliderSection(),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 12),
                         child: Text(
                           "Waiting For You...",
                           style: GoogleFonts.poppins(
@@ -859,9 +938,11 @@ class _FacultyHomeState extends State<FacultyHome> {
 
                       // Visitors Section
                       _buildVisitorsList(),
-                      SizedBox(height: 80), // space for bottom nav
+                      AnimatedCollegeInfo(),
+
                     ],
                   ),
+
                 ),
               ),
             ],
@@ -870,8 +951,6 @@ class _FacultyHomeState extends State<FacultyHome> {
       ),
     );
   }
-
-
 }
 class _PremiumEventSlider extends StatefulWidget {
   final List<QueryDocumentSnapshot> events;

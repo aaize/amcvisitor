@@ -322,7 +322,7 @@ class _AddEventScreenState extends State<AddEventScreen>
     return CupertinoPageScaffold(
       backgroundColor: const Color(0xFF0A1A2F),
       navigationBar: const CupertinoNavigationBar(
-        middle: Text('Add Event',
+        middle: Text('Announcement',
         style: TextStyle(fontWeight: FontWeight.w400,
         color: Colors.white),),
         backgroundColor: CupertinoColors.white,
@@ -352,7 +352,7 @@ class _AddEventScreenState extends State<AddEventScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Create New Event',
+                      'New Announcement',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
