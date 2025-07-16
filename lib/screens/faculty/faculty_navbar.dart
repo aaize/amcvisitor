@@ -121,7 +121,7 @@ class _FacultyNavbarState extends State<FacultyNavbar> {
       icon: Stack(
         clipBehavior: Clip.none,
         children: [
-          const Icon(CupertinoIcons.plus_square_fill),
+          const Icon(CupertinoIcons.music_mic),
           if (_showRedDot)
             Positioned(
               right: -4,
@@ -137,7 +137,7 @@ class _FacultyNavbarState extends State<FacultyNavbar> {
             ),
         ],
       ),
-      label: 'Events',
+      label: 'Announcement',
     );
   }
 
