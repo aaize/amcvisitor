@@ -348,7 +348,7 @@ class _FacultyHomeState extends State<FacultyHome> {
           return SizedBox(); // or show fallback banner
         }
 
-        return _PremiumEventSlider(events: snapshot.data!);
+        return _PremiumEventSlider(events: snapshot.data!, userId: widget.userId,);
       },
     );
   }
@@ -996,13 +996,13 @@ class _FacultyHomeState extends State<FacultyHome> {
 
 class _PremiumEventSlider extends StatefulWidget {
   final List<QueryDocumentSnapshot> events;
+  final String userId;
 
-  const _PremiumEventSlider({required this.events});
+  const _PremiumEventSlider({required this.events, required this.userId});
 
   @override
   State<_PremiumEventSlider> createState() => _PremiumEventSliderState();
 }
-
 class _PremiumEventSliderState extends State<_PremiumEventSlider> {
   late PageController _pageController;
   Timer? _autoScrollTimer;
@@ -1037,19 +1037,20 @@ class _PremiumEventSliderState extends State<_PremiumEventSlider> {
     });
   }
 
-
   String _truncateText(String text, int maxLength) {
     return text.length > maxLength ? '${text.substring(0, maxLength)}...' : text;
   }
 
   String _formatEventDateTime(Timestamp timestamp) {
-    final date = timestamp.toDate().toLocal(); // Convert to local timezone
+    final date = timestamp.toDate().toLocal();
     return '${_getMonth(date.month)} ${date.day}, ${date.year} at ${_formatTime(date)}';
   }
 
   String _getMonth(int month) {
-    const months = ['January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'];
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
     return months[month - 1];
   }
 
@@ -1070,16 +1071,23 @@ class _PremiumEventSliderState extends State<_PremiumEventSlider> {
             onPageChanged: (index) => setState(() => _currentIndex = index),
             itemCount: widget.events.length,
             itemBuilder: (context, index) {
-              final eventData = widget.events[index].data() as Map<String, dynamic>;
-              final eventName = eventData['event_name'] as String? ?? 'Untitled Event';
+              final doc = widget.events[index];
+              final eventData = doc.data() as Map<String, dynamic>;
+              final eventDocId = doc.id;
+              final eventName = eventData['event_name'] ?? 'Untitled Event';
               final imageUrl = eventData['image_url'] as String?;
               final timestamp = eventData['timestamp'] as Timestamp?;
 
-              // Inside itemBuilder
               return GestureDetector(
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => EventDetailsScreen(event: eventData)),
+                  MaterialPageRoute(
+                    builder: (context) => EventDetailsScreen(
+                      event: eventData,
+                      userId: widget.userId,
+                      eventDocId: eventDocId,
+                    ),
+                  ),
                 ),
                 child: Container(
                   margin: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
@@ -1146,14 +1154,14 @@ class _PremiumEventSliderState extends State<_PremiumEventSlider> {
                           ),
                         ),
 
-                        // Premium Badge
+                        // Badge
                         Positioned(
                           top: 16,
                           right: 16,
                           child: _buildEventStatusBadge(eventData['event_date']),
                         ),
 
-                        // Event Information
+                        // Event Info
                         Positioned(
                           bottom: 0,
                           left: 0,
@@ -1173,7 +1181,6 @@ class _PremiumEventSliderState extends State<_PremiumEventSlider> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Date and Time
                                 Row(
                                   children: [
                                     Icon(Icons.calendar_month, size: 16, color: Colors.white70),
@@ -1189,9 +1196,8 @@ class _PremiumEventSliderState extends State<_PremiumEventSlider> {
                                   ],
                                 ),
                                 SizedBox(height: 8),
-                                // Event Name
                                 Text(
-                                  eventData['event_name'],
+                                  eventName,
                                   style: GoogleFonts.poppins(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w700,
@@ -1199,13 +1205,12 @@ class _PremiumEventSliderState extends State<_PremiumEventSlider> {
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                ),SizedBox(height: 8),
-                                // Event Name
+                                ),
+                                SizedBox(height: 8),
                                 Text(
-                                  eventData['description'],
+                                  eventData['description'] ?? '',
                                   style: GoogleFonts.poppins(
                                     fontSize: 15,
-
                                     color: Colors.white,
                                   ),
                                   maxLines: 2,
@@ -1216,7 +1221,7 @@ class _PremiumEventSliderState extends State<_PremiumEventSlider> {
                           ),
                         ),
 
-                        // See More Button (Bottom Right)
+                        // See More Button
                         Positioned(
                           bottom: 16,
                           right: 16,
@@ -1224,7 +1229,13 @@ class _PremiumEventSliderState extends State<_PremiumEventSlider> {
                             onTap: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => EventDetailsScreen(event: eventData)),
+                                MaterialPageRoute(
+                                  builder: (context) => EventDetailsScreen(
+                                    event: eventData,
+                                    userId: widget.userId,
+                                    eventDocId: eventDocId,
+                                  ),
+                                ),
                               );
                             },
                             child: Container(
@@ -1250,7 +1261,6 @@ class _PremiumEventSliderState extends State<_PremiumEventSlider> {
                   ),
                 ),
               );
-
             },
           ),
         ),
@@ -1275,23 +1285,19 @@ class _PremiumEventSliderState extends State<_PremiumEventSlider> {
     );
   }
 
-
   DateTime _parseEventDate(String dateString) {
     try {
-      // Handle the "at" and timezone format
-      final formattedString = dateString
+      final formatted = dateString
           .replaceAll(' at ', ' ')
-          .replaceAll(' ', ' ') // Replace special space character
-          .replaceAll(' UTC+5:30', ''); // Remove timezone
-
-      return DateFormat('MMMM d, y h:mm:ss a').parse(formattedString);
+          .replaceAll(' ', ' ')
+          .replaceAll(' UTC+5:30', '');
+      return DateFormat('MMMM d, y h:mm:ss a').parse(formatted);
     } catch (e) {
       print('Error parsing date: $e');
-      return DateTime.now(); // Fallback to current date
+      return DateTime.now();
     }
   }
 
-// Updated status badge widget
   Widget _buildEventStatusBadge(dynamic eventDateRaw) {
     if (eventDateRaw == null) return SizedBox.shrink();
 
@@ -1299,13 +1305,12 @@ class _PremiumEventSliderState extends State<_PremiumEventSlider> {
     late DateTime eventDate;
 
     try {
-      // If it's a Firestore Timestamp
       if (eventDateRaw is Timestamp) {
         eventDate = eventDateRaw.toDate();
       } else if (eventDateRaw is String) {
         eventDate = DateTime.parse(eventDateRaw);
       } else {
-        return SizedBox.shrink(); // unsupported format
+        return SizedBox.shrink();
       }
     } catch (_) {
       return SizedBox.shrink();
@@ -1319,7 +1324,7 @@ class _PremiumEventSliderState extends State<_PremiumEventSlider> {
       DateTime(now.year, now.month, now.day, 23, 59, 59),
     );
 
-    if (!isToday && !isFuture) return SizedBox.shrink(); // Skip past events
+    if (!isToday && !isFuture) return SizedBox.shrink();
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -1348,5 +1353,4 @@ class _PremiumEventSliderState extends State<_PremiumEventSlider> {
       ),
     );
   }
-
 }

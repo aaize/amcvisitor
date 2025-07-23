@@ -54,6 +54,7 @@ dependencies:
   crypto:
   intl:
   liquid_pull_to_refresh:
+  animated_text_kit:
 
 
 
